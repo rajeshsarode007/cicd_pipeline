@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: mangodb-svc
+  name: mangodb-svc
+spec:
+  ports:
+  - port: 27017
+  clusterIP: None  # Headless
+  selector:
+    app: mangodb-demo

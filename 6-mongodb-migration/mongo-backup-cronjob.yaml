@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongo-backup
+spec:
+  schedule: "* */6 * * *" # every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: mongo-backup
+            image: mongo:6 
+            command:
+              - /bin/bash
+              - -c
+              - |
+                apt update && apt install -y curl unzip && \
+                curl -O https://dl.min.io/client/mc/release/linux-amd64/mc && chmod +x mc && mv mc /usr/local/bin/
+
+                TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                BACKUP_DIR="/backup/dump-$TIMESTAMP"
+                
+                mongodump --uri="$MONGO_URI" --out="$BACKUP_DIR"
+                
+                mc alias set minio "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+                mc mb --ignore-existing minio/$MINIO_BUCKET
+                mc cp --recursive "$BACKUP_DIR" minio/$MINIO_BUCKET/
+            envFrom:
+              - secretRef:
+                  name: mongo-backup-secret
+            volumeMounts:
+              - name: backup-storage
+                mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup-storage
+              emptyDir: {}
+

@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mangodb-demo
+  name: mangodb-demo
+spec:
+  serviceName: "mangodb-svc"        
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mangodb-demo
+  template:
+    metadata:
+      labels:
+        app: mangodb-demo
+    spec:
+      containers:
+      - image: mongo:6.0
+        name: mangodb-demo
+        ports:
+        - containerPort: 27017
+        command:
+          - mongod
+          - "--replSet"
+          - rs0
+          - "--bind_ip_all"        
+        volumeMounts:
+        - name: mongo-persistent-storage
+          mountPath: /data/db
+  volumeClaimTemplates:
+  - metadata:
+     name: mongo-persistent-storage
+    spec:
+      storageClassName: manual            
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 2Gi
